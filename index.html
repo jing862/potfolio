@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STANLY — Divination & Identity Systems</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Noto+Serif+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'sys-bg': '#121214',
+                        'sys-black': '#000000',
+                        'sys-text-primary': '#E8E8E5',
+                        'sys-text-secondary': '#9A9A96',
+                        'sys-text-muted': '#62625F',
+                        'approved-blue': '#E8E8E5',
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif JP"', '"Noto Serif"', 'serif'],
+                        sans: ['Inter', '"Helvetica Neue"', 'Arial', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #121214;
+            color: #E8E8E5;
+            font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+            overflow-x: hidden;
+            margin: 0;
+            cursor: none;
+        }
+
+        /* 静态噪点胶片叠加层 */
+        .grain-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 40;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* 极简圆点自定义光标 */
+        #custom-cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 100;
+            border-radius: 50%;
+            background-color: #E8E8E5;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), height 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.3s ease, background-color 0.3s ease;
+            width: 7px;
+            height: 7px;
+            mix-blend-mode: difference;
+        }
+
+        #custom-cursor.active {
+            width: 24px;
+            height: 24px;
+            background-color: rgba(232, 232, 229, 0.15);
+            border: 1px solid rgba(232, 232, 229, 0.8);
+        }
+
+        /* 陨石标注引导线与标签 */
+        .asteroid-label {
+            position: absolute;
+            pointer-events: none;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            white-space: nowrap;
+            z-index: 20;
+            user-select: none;
+        }
+
+        .leader-line {
+            position: absolute;
+            left: -24px;
+            top: 50%;
+            width: 20px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(232, 232, 229, 0.8), rgba(232, 232, 229, 0.2));
+        }
+
+        .leader-line::before {
+            content: '';
+            position: absolute;
+            left: -3px;
+            top: -2px;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background-color: #E8E8E5;
+            box-shadow: 0 0 6px rgba(232, 232, 229, 0.8);
+        }
+
+        /* 点击空白处随机弹出答案之书气泡样式 */
+        .oracle-popup {
+            position: fixed;
+            pointer-events: none;
+            z-index: 35;
+            color: #E8E8E5;
+            font-family: "Noto Serif JP", serif;
+            font-size: 9.5px;
+            letter-spacing: 0.06em;
+            padding: 4px 9px;
+            background: rgba(18, 18, 20, 0.88);
+            border: 1px solid rgba(232, 232, 229, 0.2);
+            white-space: nowrap;
+            user-select: none;
+            animation: oracleFloat 3.0s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+        }
+
+        .oracle-popup::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: #E8E8E5;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        @keyframes oracleFloat {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -6px) scale(0.96);
+            }
+            12% {
+                opacity: 0.95;
+                transform: translate(-50%, -14px) scale(1);
+            }
+            82% {
+                opacity: 0.95;
+                transform: translate(-50%, -22px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -28px) scale(0.98);
+            }
+        }
+
+        /* 顶部导航悬停下划线 */
+        .nav-link {
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 1px;
+            background-color: #E8E8E5;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* 作品详情空间拼贴图黑白转彩色悬停效果 */
+        .collage-img {
+            filter: grayscale(100%) opacity(0.8);
+            transition: filter 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .collage-img:hover {
+            filter: grayscale(0%) opacity(1);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(232, 232, 229, 0.15);
+            z-index: 30;
+        }
+
+        /* 空间网格底纹背景 */
+        .spatial-grid-bg {
+            background-size: 32px 32px;
+            background-image: 
+                linear-gradient(to right, rgba(232, 232, 229, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(232, 232, 229, 0.04) 1px, transparent 1px);
+        }
+
+        /* 滚动条自定义 */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #121214;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #E8E8E5;
+        }
+    </style>
+</head>
+<body class="h-full bg-sys-bg text-sys-text-primary antialiased selection:bg-sys-text-primary/30 selection:text-sys-text-primary">
+
+    <div class="grain-overlay"></div>
+    <div id="custom-cursor"></div>
+
+    <!-- 12宫格建筑式网格系统 (12 Houses / 十二宮) -->
+    <div id="grid-overlay" class="fixed inset-0 w-full h-full pointer-events-none z-10 grid grid-cols-4 grid-rows-3 border-collapse">
+        <div class="border-r border-b border-sys-text-primary/[0.12]"></div>
+        <div class="border-r border-b border-sys-text-primary/[0.12]"></div>
+        <div class="border-r border-b border-sys-text-primary/[0.12]"></div>
+        <div class="border-b border-sys-text-primary/[0.12]"></div>
+
+        <div class="border-r border-b border-sys-text-primary/[0.12]"></div>
+        <div class="border-r border-b border-sys-text-primary/[0.12]"></div>
+        <div class="border-r border-b border-sys-text-primary/[0.12]"></div>
+        <div class="border-b border-sys-text-primary/[0.12]"></div>
+
+        <div class="border-r border-sys-text-primary/[0.12]"></div>
+        <div class="border-r border-sys-text-primary/[0.12]"></div>
+        <div class="border-r border-sys-text-primary/[0.12]"></div>
+        <div></div>
+
+        <!-- 网格交叉点 (+) 符号 -->
+        <div class="absolute left-1/4 top-1/3 -translate-x-1/2 -translate-y-1/2 text-[9px] font-sans text-sys-text-primary/40 select-none">+</div>
+        <div class="absolute left-2/4 top-1/3 -translate-x-1/2 -translate-y-1/2 text-[9px] font-sans text-sys-text-primary/40 select-none">+</div>
+        <div class="absolute left-3/4 top-1/3 -translate-x-1/2 -translate-y-1/2 text-[9px] font-sans text-sys-text-primary/40 select-none">+</div>
+        <div class="absolute left-1/4 top-2/3 -translate-x-1/2 -translate-y-1/2 text-[9px] font-sans text-sys-text-primary/40 select-none">+</div>
+        <div class="absolute left-2/4 top-2/3 -translate-x-1/2 -translate-y-1/2 text-[9px] font-sans text-sys-text-primary/40 select-none">+</div>
+        <div class="absolute left-3/4 top-2/3 -translate-x-1/2 -translate-y-1/2 text-[9px] font-sans text-sys-text-primary/40 select-none">+</div>
+    </div>
+
+    <!-- 顶部导航: 米白色文字，右上角对齐 -->
+    <header class="fixed top-0 left-0 w-full z-30 px-[3vw] py-8 flex justify-end items-center pointer-events-none">
+        <nav class="flex space-x-6 md:space-x-8 pointer-events-auto">
+            <button onclick="openPanel('works')" class="nav-link text-xs md:text-sm tracking-[0.18em] text-approved-blue font-sans font-semibold py-1 opacity-95 hover:opacity-100 transition-opacity">
+                WORKS
+            </button>
+            <button onclick="openPanel('artist')" class="nav-link text-xs md:text-sm tracking-[0.18em] text-approved-blue font-sans font-semibold py-1 opacity-95 hover:opacity-100 transition-opacity">
+                ARTIST
+            </button>
+            <button onclick="openPanel('research')" class="nav-link text-xs md:text-sm tracking-[0.18em] text-approved-blue font-sans font-semibold py-1 opacity-95 hover:opacity-100 transition-opacity">
+                RESEARCH
+            </button>
+        </nav>
+    </header>
+
+    <!-- 英文研究大标题图层: 位于 3D Canvas 下方 (z-0) -->
+    <div id="home-fragment" class="fixed top-20 md:top-24 left-[3vw] w-[88vw] md:w-[50vw] max-w-[760px] z-0 pointer-events-none transition-opacity duration-700">
+        <h1 class="font-sans text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-approved-blue font-bold leading-[0.98] tracking-tight mb-4 text-left uppercase">
+            DIVINATION<br>
+            AS IDENTITY<br>
+            NARRATIVE
+        </h1>
+
+        <p class="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-approved-blue font-medium leading-[1.12] tracking-tight opacity-95 max-w-2xl mt-4">
+            — Research on Visual Expressions of Self-Identity in Contemporary Youth
+        </p>
+    </div>
+
+    <!-- 3D Canvas 容器 (z-10 置于文字上方) -->
+    <div id="canvas-container" class="fixed inset-0 w-full h-full z-10"></div>
+
+    <!-- 陨石 2D 投影标签层 -->
+    <div id="labels-container" class="fixed inset-0 w-full h-full z-20 pointer-events-none"></div>
+
+    <!-- 侧边展开抽屉面板 -->
+    <div id="panel-backdrop" class="fixed inset-0 bg-sys-bg/95 z-40 opacity-0 pointer-events-none transition-opacity duration-500 flex justify-end">
+        <div id="panel-content-wrapper" class="w-full md:w-[680px] lg:w-[80vw] h-full bg-sys-black border-l border-sys-text-primary/10 overflow-y-auto px-6 md:px-12 py-16 translate-x-full transition-all duration-500 ease-out">
+            <button onclick="closePanels()" class="fixed top-8 right-8 md:right-12 text-xs text-sys-text-muted hover:text-sys-text-primary tracking-[0.14em] transition-colors py-2 px-4 uppercase z-50 bg-sys-black/80 border border-white/10 rounded-sm">
+                [ CLOSE ESC ]
+            </button>
+
+            <!-- 面板 1: 作品索引 -->
+            <div id="panel-works" class="panel-section hidden">
+                <div class="mb-12">
+                    <span class="text-xs font-sans text-sys-text-secondary tracking-[0.14em] uppercase block mb-2">01 / WORKS INDEX</span>
+                    <h2 class="font-sans text-2xl md:text-3xl text-sys-text-primary font-light tracking-wide uppercase">Index of Works & Procedural Systems</h2>
+                    <p class="font-serif text-sm text-sys-text-secondary mt-3 leading-relaxed max-w-xl">
+                        Deconstructing traditional divination systems into generative rules for spatial installations and moving images.
+                    </p>
+                </div>
+
+                <div class="space-y-10 divide-y divide-sys-text-primary/10" id="works-list-container">
+                    <!-- 动态渲染作品列表 -->
+                </div>
+            </div>
+
+            <!-- 面板 2: 艺术家陈述 -->
+            <div id="panel-artist" class="panel-section hidden">
+                <div class="mb-10">
+                    <span class="text-xs font-sans text-sys-text-secondary tracking-[0.14em] uppercase block mb-2">02 / ARTIST STATEMENT</span>
+                    <h2 class="font-sans text-2xl md:text-3xl text-sys-text-primary font-light tracking-wide uppercase">Artist Statement</h2>
+                </div>
+
+                <div class="space-y-8 font-serif text-sm text-sys-text-secondary leading-[1.8] max-w-xl">
+                    <p>
+                        I am STANLY. I deconstruct East Asian traditional divination formulas into contemporary media installations and interactive spatial environments.
+                    </p>
+                    <p>
+                        In contemporary society, youth frequently encounter existential dilemmas regarding identity and self-location. Rather than offering deterministic answers, my work reclaims divination as a shared, public mechanism for collective dialogue.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 面板 3: 研究计划书 -->
+            <div id="panel-research" class="panel-section hidden">
+                <div class="mb-10">
+                    <span class="text-xs font-sans text-sys-text-secondary tracking-[0.14em] uppercase block mb-2">03 / RESEARCH PLAN</span>
+                    <h2 class="font-sans text-2xl md:text-3xl text-sys-text-primary font-light tracking-wide uppercase">Research Plan</h2>
+                    <p class="font-serif text-xs text-sys-text-secondary mt-2">
+                        Divination as Identity Narrative — Research on Visual Expressions of Self-Identity in Contemporary Youth
+                    </p>
+                </div>
+
+                <div class="space-y-10 font-serif text-xs md:text-sm text-sys-text-secondary leading-[1.8] max-w-2xl">
+                    <section class="border-b border-sys-text-primary/10 pb-8">
+                        <h3 class="font-sans text-base text-sys-text-primary mb-3 flex items-center space-x-2 uppercase tracking-wider">
+                            <span class="text-sys-text-primary">01.</span>
+                            <span>Research Background</span>
+                        </h3>
+                        <p class="mb-3">
+                            Divination systems—such as Zi Wei Dou Shu, Four Pillars (Ba Zi), and I Ching—represent cultural practices through which humans decipher cosmic laws. While material productivity flourishes, contemporary youth often face existential anxiety and identity fragmentation.
+                        </p>
+                    </section>
+                </div>
+            </div>
+
+            <!-- 面板 4: 作品详情视图 -->
+            <div id="panel-work-detail" class="panel-section hidden">
+                <button onclick="openPanel('works')" class="text-xs font-sans text-sys-text-secondary hover:underline mb-8 flex items-center space-x-2">
+                    <span>←</span>
+                    <span>INDEX OF WORKS</span>
+                </button>
+
+                <div id="work-detail-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 64句卜算语录（答案之书）
+        const ORACLE_PHRASES = [
+            "答えは近づいています。",
+            "まだその時ではありません。",
+            "自分の直感を信じてください。",
+            "急いで決める必要はありません。",
+            "あなたはもう答えを知っています。",
+            "もう少し待ってください。",
+            "すべては変わっていきます。",
+            "流れに任せましょう。",
+            "振り返らないでください。",
+            "別の道を選んでみましょう。",
+            "説明する必要のないこともあります。",
+            "時間が答えを教えてくれます。",
+            "あなたはそれに出会います。",
+            "手放すことで、前に進めます。",
+            "これは終わりではありません。",
+            "あなたは近づいています。",
+            "答えは細部に隠れています。",
+            "もしかしたら、考え違いかもしれません。",
+            "もう一度、見てみましょう。",
+            "偶然を見逃さないでください。",
+            "誰かがあなたを待っています。",
+            "きっと返事が来ます。",
+            "今は黙っていましょう。",
+            "自分の気持ちを伝えましょう。",
+            "今なら、出発できます。",
+            "もう一日、待ちましょう。",
+            "チャンスはもう現れています。",
+            "見逃さないでください。",
+            "方向を変える必要があります。",
+            "今までの道も間違いではありません。",
+            "少しだけ、ゆっくり進みましょう。",
+            "前へ進みましょう。",
+            "思っているより、近くにあります。",
+            "物事は予定通りには進みません。",
+            "思いがけないことも答えです。",
+            "あなたはもう一度、始めます。",
+            "何かが消えようとしています。",
+            "新しい何かが生まれようとしています。",
+            "知らないものを恐れないでください。",
+            "変化を受け入れましょう。",
+            "あなたの居場所が見つかります。",
+            "誰かになる必要はありません。",
+            "なぜ始めたのか、思い出してください。",
+            "もう一度、選び直せます。",
+            "過去は消えていません。",
+            "未来は変わり続けています。",
+            "答えのない問いもあります。",
+            "不確かなことも、一つの答えです。",
+            "風が吹くのを待ちましょう。",
+            "光のある方へ進みましょう。",
+            "周りの人に目を向けてください。",
+            "足元を見てください。",
+            "新しい景色が見えてきます。",
+            "ある瞬間が、あなたを変えます。",
+            "偶然は、偶然ではありません。",
+            "運命が曲がり始めています。",
+            "いつか、すべてが分かります。",
+            "答えは、もしかすると後ろにあります。",
+            "答えを探しすぎないでください。",
+            "起こるべきことは、自然に起こります。",
+            "今、起きていることを信じてください。",
+            "待っていたものが、近づいています。",
+            "もしかすると、答えはあなた自身です。",
+            "ここを開いたのも、偶然ではありません。"
+        ];
+
+        const WORKS_DATA = [
+            {
+                id: '01',
+                title: '《天機不可泄漏》',
+                subtitle: 'Zi Wei Dou Shu · Where Do I Come From?',
+                year: '2026',
+                category: 'Spatial Installation',
+                color: '#8FA5D0',
+                videoUrl: 'https://res.cloudinary.com/jd0wgto3/video/upload/v1786602757/%E7%B4%AB%E5%BE%AE%E6%96%97%E6%95%B0.mp4',
+                idea: '《天機不可泄漏》は、紫微斗数を基盤としたデジタル映像作品である。本作では、十二宮から成る命盤を構造として用い、天体、時間、細胞、デジタル・グリッチなどの映像を分裂・複製・再構成することで、一人の「人間」が計算され、生成され、解釈されていく過程を表現している。',
+                images: [
+                    {
+                        url: 'https://raw.githubusercontent.com/jing862/-/main/a04116916e22f06fc4ba6a67e35da7fa.jpg',
+                        tag: 'FIG 01 / CONCEPT ORIGIN',
+                        label: 'Astrological Birth Wheel & Life Manual',
+                        desc: '紫微斗数は、人の出生時刻をもとに十二宮からなる命盤を作成し、家庭、仕事、人間関係、身体など、人生のさまざまな側面を読み解くものである。'
+                    },
+                    {
+                        url: 'https://raw.githubusercontent.com/jing862/-/main/b8c6f52c94f08ccae114f4fc8644b367.jpg',
+                        tag: 'FIG 02 / VISUAL CONTENT',
+                        label: 'Interface between Universe, Data & Body',
+                        desc: '画面は複製、分裂、ずれ、再構成を繰り返し、身体、宇宙、データの境界を徐々に曖昧にしていく。'
+                    },
+                    {
+                        url: 'https://raw.githubusercontent.com/jing862/-/main/eef7f820bee6c984bc30632ba5ce073a.jpg',
+                        tag: 'FIG 03 / EXPERIMENTATION',
+                        label: 'Digital Glitches & Cell Generation',
+                        desc: '紫微斗数の構造に、細胞、宇宙、時間、デジタル・グリッチなどの視覚要素を組み合わせた映像実験。'
+                    },
+                    {
+                        url: 'https://raw.githubusercontent.com/jing862/-/main/c5ae01ff79f5aafac613996cadefe845.jpg',
+                        tag: 'FIG 04 / INSTALLATION SPACE',
+                        label: 'Spatial Projections & Self Rewriting',
+                        desc: '観客自身が「自己」を読み取り、生成し、書き換えているかのような空間へ入り込める作品。'
+                    }
+                ],
+                japaneseContent: {
+                    section1Title: '作品構成',
+                    section1Text: '《天機不可泄漏》は、紫微斗数を基盤としたデジタル映像作品である。本作では、十二宮から成る命盤を構造として用い、天体、時間、細胞、デジタル・グリッチなどの映像を分裂・複製・再構成することで、一人の「人間」が計算され、生成され、解釈されていく過程を表現している。',
+                    section2Title: '主な象徴',
+                    section2Text: '十二宮の命盤は、一人の人生全体を説明しようとする外部の秩序を象徴している。天体とその軌道は、あらかじめ定められた運行の規則を示し、絶えず分裂し変化する細胞や映像は、完全には固定することのできない個人の存在を表している。\nそこには、一つの矛盾が生まれる。運命はすでに書き記されているように見える一方で、人間は常に変化し続けている。',
+                    section3Title: '制作の契機と意義',
+                    section3Text: '現実における経験や既存の価値観だけでは、自らの不安や未来を十分に説明できないとき、一部の若者は命理を通して、あらためて自分自身を理解しようとしている。\n私が関心を持ったのは、命理が「当たるかどうか」ではなく、不確実な状況に置かれた人間が、なぜ外部の象徴体系を必要とし、それを通して自らの経験に意味や説明を与えようとするのかという点である。\nそのため本作では、「算（計算する／占う）」というプロセスを通して、外からは見えにくい個人の不安に応答する。命理は、言葉にならない迷いや不安に、一時的に理解し、表現するための形式を与える。\n同時に、本作は二つの問いを提示する。\n運命には、個人の外部に存在する何らかの力や秩序があるのだろうか。もし運命を計算することができるなら、それを変えることもできるのだろうか。'
+                },
+                englishContent: {
+                    section1Title: 'Work Structure',
+                    section1Text: 'The Secrets of Heaven Must Not Be Revealed is a digital moving-image work based on Zi Wei Dou Shu, a traditional Chinese system of astrology and divination. The work uses the twelve-palace birth chart as its structural framework. Through the fragmentation, duplication, and recombination of images of celestial bodies, time, cells, and digital glitches, it visualizes the process through which a “person” is calculated, generated, and interpreted.',
+                    section2Title: 'Key Symbols',
+                    section2Text: 'The twelve-palace birth chart symbolizes an external system of order that attempts to explain an entire human life. Celestial bodies and their orbits suggest predetermined rules and patterns of movement, while the constantly dividing and transforming cells and images represent the individual as something that can never be completely fixed.\nThis creates a central contradiction within the work: fate appears to have already been written, while human beings remain in a continuous state of change.',
+                    section3Title: 'Motivation and Significance',
+                    section3Text: 'When lived experience and existing values can no longer adequately explain their anxieties or their future, some young people begin to turn to systems of divination in order to reinterpret and understand themselves.\nWhat interests me is not whether such systems are accurate, but rather why people, when faced with uncertainty, feel the need for an external symbolic system through which they can give meaning and structure to their own experiences.\nThrough the process of “calculation” and divination, this work responds to forms of individual anxiety that are often difficult to perceive from the outside. Divination temporarily gives confusion and uncertainty a form through which they can be understood and expressed.\nAt the same time, the work raises two central questions:\nDoes fate exist as some kind of force or order external to the individual? If fate can be calculated, can it also be changed?'
+                }
+            },
+            {
+                id: '02',
+                title: '《命里有時終須有》',
+                subtitle: 'Four Pillars (Ba Zi) · Who Am I?',
+                year: '2026',
+                category: 'Embodied Cognition',
+                color: '#D4AC55',
+                idea: 'Four Pillars constructs a dynamic relational network between self and world via Five Elements interactions.',
+                rule: 'Energy texture transmission based on embodied cognition.',
+                experiment: 'Projecting micro-signals of qi flow onto physical material motions.',
+                making: 'Micro-fluidic physics simulations and macro cinematography.',
+                result: 'The authentic self explored amidst symbolic networks.',
+                images: [
+                    {
+                        url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800',
+                        tag: '01. IDEA / 概念源起',
+                        label: 'Five Elements Relational Network',
+                        desc: 'Four Pillars constructs a dynamic relational network between self and world via Five Elements interactions.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800',
+                        tag: '02. RULE / 裝置生成規則',
+                        label: 'Energy Texture & Embodied Transmission',
+                        desc: 'Energy texture transmission based on embodied cognition, mapping Qi flow to material motion.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800',
+                        tag: '03. EXPERIMENT / 實踐與試驗',
+                        label: 'Micro-Fluidic Physics Rig',
+                        desc: 'Projecting micro-signals of qi flow onto physical fluid mechanics and micro-cinematography.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800',
+                        tag: '04. RESULT / 存在反思',
+                        label: 'Authentic Self in Symbolic Matrix',
+                        desc: 'The authentic self explored amidst symbolic networks and elemental transformations.'
+                    }
+                ]
+            },
+            {
+                id: '03',
+                title: '《人算不如天算》',
+                subtitle: 'Liu Yao I Ching · Where Am I Going?',
+                year: '2026',
+                category: 'Dual-Layer Rotary System',
+                color: '#C86D62',
+                videoUrl: 'https://res.cloudinary.com/jd0wgto3/video/upload/v1787053698/8%E6%9C%8810%E6%97%A5_1.mp4',
+                idea: '《人算不如天算》は、インタラクティブ・インスタレーション、生成映像、映像記録を組み合わせた作品である。',
+                images: [
+                    {
+                        url: 'https://raw.githubusercontent.com/jing862/-/main/35091d2dcc6edd4429d274888692d5ad.jpg',
+                        tag: 'FIG 01 / CONCEPT ORIGIN',
+                        label: 'Rotary Hexagram Mechanism',
+                        desc: 'Based on the I Ching, a dual-layer rotating wheel generates hexagrams responding to unfulfilled possibilities.'
+                    },
+                    {
+                        url: 'https://raw.githubusercontent.com/jing862/-/main/4659faebeccc1988dee73f9cf3a9baf1.jpg',
+                        tag: 'FIG 02 / VISUAL CONTENT',
+                        label: 'Manual Rotation & TouchDesigner System',
+                        desc: 'Manual rotation constructs hexagrams to trigger real-time generative projections.'
+                    },
+                    {
+                        url: 'https://raw.githubusercontent.com/jing862/-/main/6725b87590bddf467b7d45b36cb4a77d.jpg',
+                        tag: 'FIG 03 / EXPERIMENTATION',
+                        label: 'Brass Sensor Wheel Construction',
+                        desc: 'Brass sensor wheel and TouchDesigner real-time hexagram calculation system.'
+                    },
+                    {
+                        url: 'https://raw.githubusercontent.com/jing862/-/main/752059426e69fab8af69d3cd2585ed60.jpg',
+                        tag: 'FIG 04 / INSTALLATION SPACE',
+                        label: 'Form of Unfulfilled Possibilities',
+                        desc: 'Giving temporary form to the existential question "Where am I going?"'
+                    }
+                ],
+                japaneseContent: {
+                    section1Title: '作品構成',
+                    section1Text: '《人算不如天算》は、インタラクティブ・インスタレーション、生成映像、映像記録を組み合わせた作品である。\n観客は音声によって自らの願いを語り、システムはそれをもとに上卦と下卦を生成し、それぞれに対応する二組の映像を再生する。同時に、カメラは結果を目にした観客の表情や言葉、対話を記録する。これにより、「占いによって示された結果」と「その結果を受け取った観客の反応」の双方が作品を構成する。',
+                    section2Title: '主な象徴',
+                    section2Text: '本作の中心となる象徴は、六爻の卦象である。\n単純な長短の線によって構成される卦象には、自然、社会、人生に関する複雑な意味が与えられている。本作では、上卦と下卦に対応する異なる事物を二組の並置映像へと変換することで、本来は直接的な関係を持たないイメージ同士が、観客自身の連想によって新たなつながりを生み出す。\nしたがって、実際に生成されるのは、確定された「運命の結果」ではない。生成されるのは、観客による象徴の解釈と、その解釈から生まれる意味である。',
+                    section3Title: '制作の契機と意義',
+                    section3Text: '急速に変化する社会の中で、個人が既存の経験だけを頼りに「自分はこれからどこへ向かうのか」を判断することは難しくなっている。そうした状況において、命理は外部から与えられる一つの解釈資源となり、捉えにくい未来を一時的に、見ること、理解すること、語り合うことのできる象徴へと変換する。\n本作は、六爻を通して答えを提示することを目的としているのではない。むしろ、「算（占う／計算する）」という行為そのものを、不確実性に向き合うための一つの行為として捉えている。\n観客は卦象を解釈する過程で、自らの経験、期待、不安をそこに投影し、まだ起きていない未来に対して、一時的な意味を与えていく。\nそのため、本作が最終的に問いかけるのは、次のことである。\n既存の答えでは個人の未来を説明できないとき、私たちは「自分はこれからどこへ向かうのか」という問いに対して、どのように頼ることのできる解釈を見つけるのだろうか。'
+                },
+                englishContent: {
+                    section1Title: 'Work Structure',
+                    section1Text: 'Human Calculation Falls Short of Heaven’s Design is an artwork combining interactive installation, generative moving images, and video documentation.\nVisitors speak their wishes aloud. The system then generates an upper and a lower trigram and plays two corresponding sets of moving images. At the same time, a camera records the visitors’ facial expressions, words, and discussions as they respond to the result. In this way, both the “result of divination” and the “reaction to that result” become part of the work.',
+                    section2Title: 'Key Symbols',
+                    section2Text: 'The central symbol of the work is the six-line hexagram.\nComposed of simple broken and unbroken lines, the hexagram is given complex meanings related to nature, society, and human life. The work transforms the different elements associated with the upper and lower trigrams into two sets of juxtaposed images. Images that originally have no direct relationship begin to form new connections through the viewer’s own associations.\nTherefore, what is truly generated is not a fixed “result of fate,” but rather the viewer’s interpretation of the symbols and the meaning produced through that interpretation.',
+                    section3Title: 'Motivation and Significance',
+                    section3Text: 'In a rapidly changing society, it has become increasingly difficult for individuals to rely solely on existing experience to determine “where they are going.” Divination therefore functions as an external interpretive resource, temporarily transforming an uncertain future into symbols that can be seen, understood, and discussed.\nThis work does not attempt to provide answers through the six-line hexagram. Instead, it treats the act of “divination” itself as a way of confronting uncertainty.\nWhile interpreting the hexagram, viewers project their own experiences, expectations, and anxieties onto it, creating temporary meanings for a future that has not yet happened.\nThe work therefore asks:\nWhen existing answers can no longer explain our individual futures, how do we find an interpretation we can rely on to answer the question: “Where am I going?”'
+                }
+            },
+            {
+                id: '04',
+                title: '《算：体系と解構》',
+                subtitle: 'Mass Psychology & Symbol Reconstruction',
+                year: '2025',
+                category: 'Visual Semiotics',
+                color: '#7AA39B',
+                idea: 'Psychological compensation mechanisms in digital fortune-telling layered with I Ching diagrams.',
+                rule: 'Visualizing semantic matrices of youth fortune-telling data.',
+                experiment: 'Extracting semantic nodes from over 100 fortune-telling cases.',
+                making: 'Dual-channel synchronized high-definition document video.',
+                result: 'A visual taxonomy of "Calculated Fate" in contemporary art.',
+                images: [
+                    {
+                        url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800',
+                        tag: '01. IDEA / 概念源起',
+                        label: 'Digital Fortune-Telling Semiotics',
+                        desc: 'Psychological compensation mechanisms in digital fortune-telling layered with I Ching diagrams.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800',
+                        tag: '02. RULE / 裝置生成規則',
+                        label: 'Semantic Matrix Visualization',
+                        desc: 'Visualizing semantic matrices of youth fortune-telling data across online communities.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800',
+                        tag: '03. EXPERIMENT / 實踐與試驗',
+                        label: 'Dual-Channel Document Video',
+                        desc: 'Extracting semantic nodes from over 100 fortune-telling cases into synchronized video installation.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800',
+                        tag: '04. RESULT / 存在反思',
+                        label: 'Visual Taxonomy of Calculated Fate',
+                        desc: 'A visual taxonomy of "Calculated Fate" in contemporary art.'
+                    }
+                ]
+            },
+            {
+                id: '05',
+                title: '《易象と具象認知》',
+                subtitle: 'Phenomenological Specimen',
+                year: '2025',
+                category: 'Archive & Literature',
+                color: '#9887AA',
+                idea: 'The translation of ancient symbols into bodily cognition through Heaven-Earth-Human resonance models.',
+                rule: 'Specimen-style display of divination manuscripts.',
+                experiment: 'Extracting geometric commonalities in Eastern and Western cosmological maps.',
+                making: 'Physical handmade book, custom micro-projector, optical lens assembly.',
+                result: 'Revealing existential anxiety beneath symbolic manipulation.',
+                images: [
+                    {
+                        url: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800',
+                        tag: '01. IDEA / 概念源起',
+                        label: 'Heaven-Earth-Human Model',
+                        desc: 'The translation of ancient symbols into bodily cognition through Heaven-Earth-Human resonance models.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?w=800',
+                        tag: '02. RULE / 裝置生成規則',
+                        label: 'Specimen Display of Divination Manuscripts',
+                        desc: 'Specimen-style display of divination manuscripts and archival literature.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800',
+                        tag: '03. EXPERIMENT / 實踐與試驗',
+                        label: 'Micro-Projector & Optical Assembly',
+                        desc: 'Physical handmade book, custom micro-projector, optical lens assembly.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800',
+                        tag: '04. RESULT / 存在反思',
+                        label: 'Existential Anxiety beneath Symbols',
+                        desc: 'Revealing existential anxiety beneath symbolic manipulation in modern youth culture.'
+                    }
+                ]
+            },
+            {
+                id: '06',
+                title: '《数理軌跡》',
+                subtitle: 'Incalculable Self',
+                year: '2024',
+                category: 'Kinetic Light Engraving',
+                color: '#6B90A5',
+                idea: 'Using high-precision abacuses and ancient counting rods to depict the escape of the self from normative logic.',
+                rule: 'Engraving geometric traces via continuous calculation beams.',
+                experiment: 'Resonance frequency computation between mechanical noise and heart rate.',
+                making: 'Acrylic laser engraving, stepper motor array.',
+                result: 'Verifying the incalculable nature of the self within orderly systems.',
+                images: [
+                    {
+                        url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800',
+                        tag: '01. IDEA / 概念源起',
+                        label: 'Abacus & Calculation Traces',
+                        desc: 'Using high-precision abacuses and ancient counting rods to depict the escape of the self from normative logic.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800',
+                        tag: '02. RULE / 裝置生成規則',
+                        label: 'Laser Light Engraving Beams',
+                        desc: 'Engraving geometric traces via continuous calculation beams and stepper motor array.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800',
+                        tag: '03. EXPERIMENT / 實踐與試驗',
+                        label: 'Stepper Motor Array & Noise Frequency',
+                        desc: 'Resonance frequency computation between mechanical motor noise and human heart rate.'
+                    },
+                    {
+                        url: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800',
+                        tag: '04. RESULT / 存在反思',
+                        label: 'The Incalculable Self',
+                        desc: 'Verifying the incalculable nature of the self within orderly mathematical systems.'
+                    }
+                ]
+            }
+        ];
+
+        let scene, camera, renderer;
+        let systemGroup;
+        let centralPlanet, starParticles, planetAtmosphere;
+        let planetShaderUniforms;
+        let asteroidGroup;
+        const asteroids = [];
+        const labelElements = [];
+        let raycaster, mouse;
+        let hoveredAsteroidIndex = -1;
+
+        let planetRotSpeedX = 0;
+        let planetRotSpeedY = 0.0006;
+        let targetRotSpeedX = 0;
+        let targetRotSpeedY = 0.0006;
+
+        const PLANET_RADIUS = 11;
+        const ASTEROID_RADIUS = PLANET_RADIUS / 15;
+        const ORBIT_RADIUS = 17.0;
+        const SYSTEM_OFFSET_X = 7.5;
+
+        let starfieldClock = 0;
+
+        let isHoveringPlanet = false;
+        let currentHitPoint = new THREE.Vector3(0, 0, 0);
+        let targetHitPoint = new THREE.Vector3(0, 0, 0);
+        let hoverIntensity = 0.0;
+        let targetHoverIntensity = 0.0;
+
+        window.addEventListener('mousemove', (e) => {
+            const cursorEl = document.getElementById('custom-cursor');
+            if (cursorEl) {
+                cursorEl.style.left = e.clientX + 'px';
+                cursorEl.style.top = e.clientY + 'px';
+            }
+
+            if (mouse) {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                targetRotSpeedY = mouse.x * 0.0028 + 0.0005;
+                targetRotSpeedX = -mouse.y * 0.0018;
+            }
+        });
+
+        function init3D() {
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 52);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2(-999, -999);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.07);
+            scene.add(ambientLight);
+
+            const cosmicKeyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+            cosmicKeyLight.position.set(40, 25, -15);
+            cosmicKeyLight.castShadow = true;
+            cosmicKeyLight.shadow.mapSize.width = 2048;
+            cosmicKeyLight.shadow.mapSize.height = 2048;
+            scene.add(cosmicKeyLight);
+
+            const subtleRimLight = new THREE.DirectionalLight(0xe8e8f0, 0.18);
+            subtleRimLight.position.set(-20, -10, 25);
+            scene.add(subtleRimLight);
+
+            systemGroup = new THREE.Group();
+            systemGroup.position.x = window.innerWidth > 1024 ? SYSTEM_OFFSET_X : 2.0;
+            scene.add(systemGroup);
+
+            createStarfield();
+            createInteractiveColorRevealPlanet();
+            create6EvenlySpacedAsteroids();
+            createLabelsHTML();
+            renderWorksList();
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('click', onCanvasClick);
+            window.addEventListener('touchstart', onTouchStart, { passive: true });
+        }
+
+        function createStarfield() {
+            const starsGeo = new THREE.BufferGeometry();
+            const starsCount = 450;
+            const posArray = new Float32Array(starsCount * 3);
+
+            for (let i = 0; i < starsCount * 3; i += 3) {
+                posArray[i] = (Math.random() - 0.5) * 230;
+                posArray[i + 1] = (Math.random() - 0.5) * 230;
+                posArray[i + 2] = (Math.random() - 0.5) * 190 - 20;
+            }
+
+            starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+            const starsMat = new THREE.PointsMaterial({
+                size: 0.8,
+                color: 0xE8E8E5,
+                transparent: true,
+                opacity: 0.3,
+                sizeAttenuation: true
+            });
+
+            starParticles = new THREE.Points(starsGeo, starsMat);
+            scene.add(starParticles);
+        }
+
+        function generatePlanetColorTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+
+            const oceanGrad = ctx.createLinearGradient(0, 0, 0, 1024);
+            oceanGrad.addColorStop(0, '#0d1d3a');
+            oceanGrad.addColorStop(0.5, '#16335c');
+            oceanGrad.addColorStop(1, '#0a162b');
+            ctx.fillStyle = oceanGrad;
+            ctx.fillRect(0, 0, 2048, 1024);
+
+            const landmasses = [
+                { x: 500, y: 550, rx: 320, ry: 280, rot: -0.2, color: '#aa6c38' },
+                { x: 1250, y: 380, rx: 420, ry: 260, rot: 0.15, color: '#3d5c3a' },
+                { x: 920, y: 480, rx: 280, ry: 210, rot: 0.3, color: '#c48f52' },
+                { x: 1580, y: 620, rx: 290, ry: 190, rot: -0.1, color: '#2a422d' },
+                { x: 350, y: 320, rx: 220, ry: 170, rot: 0.4, color: '#8c582e' },
+                { x: 1750, y: 350, rx: 200, ry: 150, rot: -0.25, color: '#9d7443' }
+            ];
+
+            landmasses.forEach(m => {
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.rot);
+
+                const grad = ctx.createRadialGradient(0, 0, m.rx * 0.1, 0, 0, m.rx);
+                grad.addColorStop(0, m.color);
+                grad.addColorStop(0.7, '#1f2e1e');
+                grad.addColorStop(1, 'rgba(13, 29, 58, 0)');
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, m.rx, m.ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(240, 245, 255, 0.45)';
+            for (let i = 0; i < 35; i++) {
+                const x = Math.random() * 2048;
+                const y = Math.random() * 1024;
+                const rx = 120 + Math.random() * 280;
+                const ry = 25 + Math.random() * 70;
+                const rot = (Math.random() - 0.5) * 0.5;
+
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(rot);
+                const cGrad = ctx.createRadialGradient(0, 0, 5, 0, 0, rx);
+                cGrad.addColorStop(0, 'rgba(255, 255, 255, 0.65)');
+                cGrad.addColorStop(0.6, 'rgba(230, 238, 250, 0.25)');
+                cGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = cGrad;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            ctx.restore();
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createInteractiveColorRevealPlanet() {
+            const planetGeo = new THREE.SphereGeometry(PLANET_RADIUS, 96, 96);
+
+            const pos = planetGeo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                const vx = pos.getX(i);
+                const vy = pos.getY(i);
+                const vz = pos.getZ(i);
+
+                const noise = Math.sin(vx * 0.4) * Math.cos(vy * 0.4) * Math.sin(vz * 0.4) * 0.35
+                            + Math.sin(vx * 0.8) * 0.15;
+
+                const factor = 1 + noise * 0.035;
+                pos.setXYZ(i, vx * factor, vy * factor, vz * factor);
+            }
+            planetGeo.computeVertexNormals();
+
+            const planetColorTex = generatePlanetColorTexture();
+
+            planetShaderUniforms = {
+                uColorMap: { value: planetColorTex },
+                uHitPoint: { value: new THREE.Vector3(0, 0, 0) },
+                uHoverIntensity: { value: 0.0 },
+                uSpotlightRadius: { value: 6.8 },
+                uLightDirection: { value: new THREE.Vector3(40, 25, -15).normalize() }
+            };
+
+            const planetVertexShader = `
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                varying vec3 vLocalPosition;
+                varying vec3 vWorldPosition;
+
+                void main() {
+                    vUv = uv;
+                    vNormal = normalize(normalMatrix * normal);
+                    vLocalPosition = position;
+                    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPos.xyz;
+                    gl_Position = projectionMatrix * viewMatrix * worldPos;
+                }
+            `;
+
+            const planetFragmentShader = `
+                uniform sampler2D uColorMap;
+                uniform vec3 uHitPoint;
+                uniform float uHoverIntensity;
+                uniform float uSpotlightRadius;
+                uniform vec3 uLightDirection;
+
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                varying vec3 vLocalPosition;
+
+                void main() {
+                    vec4 texColor = texture2D(uColorMap, vUv);
+
+                    float gray = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
+                    vec3 colGrayscale = vec3(gray * 0.38);
+
+                    float dist = distance(vLocalPosition, uHitPoint);
+
+                    float spotlight = 1.0 - smoothstep(1.0, uSpotlightRadius, dist);
+                    float revealFactor = spotlight * uHoverIntensity;
+
+                    vec3 colBase = mix(colGrayscale, texColor.rgb * 1.35, revealFactor);
+
+                    float NdotL = max(0.06, dot(vNormal, uLightDirection));
+
+                    float rim = 1.0 - max(0.0, dot(vec3(0.0, 0.0, 1.0), vNormal));
+                    rim = pow(rim, 3.5) * 0.28;
+
+                    vec3 finalColor = colBase * NdotL + vec3(rim * 0.85);
+
+                    gl_FragColor = vec4(finalColor, 1.0);
+                }
+            `;
+
+            const planetMat = new THREE.ShaderMaterial({
+                uniforms: planetShaderUniforms,
+                vertexShader: planetVertexShader,
+                fragmentShader: planetFragmentShader
+            });
+
+            centralPlanet = new THREE.Mesh(planetGeo, planetMat);
+            centralPlanet.receiveShadow = true;
+            centralPlanet.castShadow = true;
+            systemGroup.add(centralPlanet);
+
+            const atmosGeo = new THREE.SphereGeometry(PLANET_RADIUS + 0.25, 32, 32);
+            const atmosMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.03,
+                side: THREE.BackSide
+            });
+            planetAtmosphere = new THREE.Mesh(atmosGeo, atmosMat);
+            centralPlanet.add(planetAtmosphere);
+        }
+
+        function create6EvenlySpacedAsteroids() {
+            asteroidGroup = new THREE.Group();
+            systemGroup.add(asteroidGroup);
+
+            const count = 6;
+
+            for (let i = 0; i < count; i++) {
+                const data = WORKS_DATA[i];
+
+                const geo = new THREE.DodecahedronGeometry(ASTEROID_RADIUS, 2);
+                const pos = geo.attributes.position;
+
+                const seed = (i + 1) * 4.3;
+                for (let j = 0; j < pos.count; j++) {
+                    const vx = pos.getX(j);
+                    const vy = pos.getY(j);
+                    const vz = pos.getZ(j);
+
+                    let nx = vx * 1.22;
+                    let ny = vy * 0.88;
+                    let nz = vz * 0.95;
+
+                    const distFromCenter = Math.sqrt(nx * nx + ny * ny + nz * nz);
+                    const angle1 = Math.atan2(nz, nx);
+                    const angle2 = Math.acos(ny / (distFromCenter || 1));
+
+                    const crater1 = Math.exp(-Math.pow(angle1 - 0.8, 2) * 5.0 - Math.pow(angle2 - 1.2, 2) * 5.0) * 0.26;
+                    const crater2 = Math.exp(-Math.pow(angle1 + 1.5, 2) * 6.5 - Math.pow(angle2 - 1.8, 2) * 6.5) * 0.20;
+
+                    const roughness = Math.sin(nx * 8.0 + seed) * Math.cos(ny * 8.0 + seed) * 0.05
+                                    + Math.sin(nz * 12.0 + seed) * 0.03;
+
+                    const factor = 1 - crater1 - crater2 + roughness;
+                    pos.setXYZ(j, nx * factor, ny * factor, nz * factor);
+                }
+                geo.computeVertexNormals();
+
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x888884,
+                    roughness: 0.55,
+                    metalness: 0.03
+                });
+
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                const angle = (i / count) * Math.PI * 2;
+
+                mesh.position.x = Math.cos(angle) * ORBIT_RADIUS;
+                mesh.position.z = Math.sin(angle) * ORBIT_RADIUS;
+                mesh.position.y = 0;
+
+                mesh.userData = {
+                    index: i,
+                    data: data,
+                    angle: angle,
+                    radius: ORBIT_RADIUS,
+                    speed: 0.00025,
+                    baseColor: new THREE.Color(0x888884),
+                    activeColor: new THREE.Color(data.color),
+                    rotAxis: new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize()
+                };
+
+                asteroids.push(mesh);
+                asteroidGroup.add(mesh);
+            }
+        }
+
+        function createLabelsHTML() {
+            const labelsContainer = document.getElementById('labels-container');
+            labelsContainer.innerHTML = '';
+
+            asteroids.forEach((ast) => {
+                const data = ast.userData.data;
+                const label = document.createElement('div');
+                label.className = 'asteroid-label opacity-60 hover:opacity-100 transition-opacity duration-300';
+                label.id = `label-${ast.userData.index}`;
+
+                label.innerHTML = `
+                    <div class="leader-line"></div>
+                    <div class="font-sans text-[8px] text-sys-text-secondary tracking-widest font-medium">${data.id} / ${data.category}</div>
+                    <div class="font-serif text-[10px] text-sys-text-primary tracking-wide leading-tight mt-0.5">${data.title}</div>
+                    <div class="font-serif text-[8.5px] text-sys-text-muted italic">${data.year}</div>
+                `;
+
+                labelsContainer.appendChild(label);
+                labelElements.push(label);
+            });
+        }
+
+        function updateLabelsPosition() {
+            const tempV = new THREE.Vector3();
+
+            asteroids.forEach((ast, idx) => {
+                const label = labelElements[idx];
+                if (!label) return;
+
+                ast.getWorldPosition(tempV);
+                tempV.project(camera);
+
+                const isBehindPlanet = ast.position.z < -2 && Math.abs(ast.position.x) < 8;
+
+                if (tempV.z > 1 || isBehindPlanet) {
+                    label.style.opacity = '0';
+                    return;
+                }
+
+                const x = (tempV.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (-(tempV.y * 0.5) + 0.5) * window.innerHeight;
+
+                label.style.left = `${x + 28}px`;
+                label.style.top = `${y - 12}px`;
+
+                if (hoveredAsteroidIndex === idx) {
+                    label.style.opacity = '1';
+                    label.style.transform = 'scale(1.04)';
+                } else {
+                    const depthAlpha = Math.max(0.2, 1 - (tempV.z * 0.5));
+                    label.style.opacity = (0.6 * depthAlpha).toFixed(2);
+                    label.style.transform = 'scale(1)';
+                }
+            });
+        }
+
+        function handleInteractions() {
+            if (!raycaster || !mouse || !camera) return;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            if (centralPlanet) {
+                const planetIntersects = raycaster.intersectObject(centralPlanet);
+                const cursorEl = document.getElementById('custom-cursor');
+
+                if (planetIntersects.length > 0) {
+                    isHoveringPlanet = true;
+                    const worldHit = planetIntersects[0].point;
+                    targetHitPoint.copy(centralPlanet.worldToLocal(worldHit.clone()));
+                    targetHoverIntensity = 1.0;
+                    if (cursorEl && hoveredAsteroidIndex === -1) cursorEl.classList.add('active');
+                } else {
+                    isHoveringPlanet = false;
+                    targetHoverIntensity = 0.0;
+                    if (cursorEl && hoveredAsteroidIndex === -1) cursorEl.classList.remove('active');
+                }
+            }
+
+            const intersects = raycaster.intersectObjects(asteroids);
+            const cursorEl = document.getElementById('custom-cursor');
+
+            if (intersects.length > 0) {
+                const hitAsteroid = intersects[0].object;
+                const index = hitAsteroid.userData.index;
+
+                if (hoveredAsteroidIndex !== index) {
+                    hoveredAsteroidIndex = index;
+                    if (cursorEl) cursorEl.classList.add('active');
+                }
+
+                asteroids.forEach((ast, idx) => {
+                    if (idx === index) {
+                        ast.material.color.lerp(ast.userData.activeColor, 0.1);
+                    } else {
+                        ast.material.color.lerp(ast.userData.baseColor, 0.1);
+                    }
+                });
+            } else {
+                if (hoveredAsteroidIndex !== -1) {
+                    hoveredAsteroidIndex = -1;
+                    if (cursorEl && !isHoveringPlanet) cursorEl.classList.remove('active');
+                }
+                asteroids.forEach((ast) => {
+                    ast.material.color.lerp(ast.userData.baseColor, 0.1);
+                });
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            planetRotSpeedY += (targetRotSpeedY - planetRotSpeedY) * 0.04;
+            planetRotSpeedX += (targetRotSpeedX - planetRotSpeedX) * 0.04;
+
+            if (centralPlanet) {
+                centralPlanet.rotation.y += planetRotSpeedY;
+                centralPlanet.rotation.x += planetRotSpeedX;
+            }
+
+            hoverIntensity += (targetHoverIntensity - hoverIntensity) * 0.08;
+            currentHitPoint.lerp(targetHitPoint, 0.12);
+
+            if (planetShaderUniforms) {
+                planetShaderUniforms.uHoverIntensity.value = hoverIntensity;
+                planetShaderUniforms.uHitPoint.value.copy(currentHitPoint);
+            }
+
+            if (starParticles) {
+                starfieldClock += 0.015;
+                starParticles.rotation.y += 0.0001;
+                starParticles.material.opacity = 0.22 + Math.sin(starfieldClock) * 0.10;
+            }
+
+            asteroids.forEach((ast, idx) => {
+                const u = ast.userData;
+
+                const currentSpeed = (hoveredAsteroidIndex === idx) ? u.speed * 0.35 : u.speed;
+                u.angle += currentSpeed;
+
+                ast.position.x = Math.cos(u.angle) * u.radius;
+                ast.position.z = Math.sin(u.angle) * u.radius;
+                ast.position.y = 0;
+
+                ast.rotateOnAxis(u.rotAxis, 0.004);
+            });
+
+            handleInteractions();
+            updateLabelsPosition();
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            if (systemGroup) {
+                systemGroup.position.x = window.innerWidth > 1024 ? SYSTEM_OFFSET_X : 2.0;
+            }
+        }
+
+        function triggerOraclePopup(clientX, clientY) {
+            const randomIndex = Math.floor(Math.random() * ORACLE_PHRASES.length);
+            const text = ORACLE_PHRASES[randomIndex];
+
+            const popup = document.createElement('div');
+            popup.className = 'oracle-popup';
+            popup.innerText = text;
+            popup.style.left = `${clientX}px`;
+            popup.style.top = `${clientY}px`;
+
+            document.body.appendChild(popup);
+
+            setTimeout(() => {
+                if (popup && popup.parentNode) {
+                    popup.parentNode.removeChild(popup);
+                }
+            }, 3000);
+        }
+
+        function onCanvasClick(e) {
+            if (e.target.closest('header') || e.target.closest('#panel-content-wrapper')) return;
+
+            if (hoveredAsteroidIndex !== -1) {
+                openWorkDetail(hoveredAsteroidIndex);
+                return;
+            }
+
+            if (!isHoveringPlanet) {
+                triggerOraclePopup(e.clientX, e.clientY);
+            }
+        }
+
+        function onTouchStart(e) {
+            if (e.touches.length > 0 && mouse) {
+                mouse.x = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
+            }
+        }
+
+        function renderWorksList() {
+            const container = document.getElementById('works-list-container');
+            if (!container) return;
+
+            container.innerHTML = WORKS_DATA.map((data, idx) => `
+                <div class="pt-8 group cursor-pointer" onclick="openWorkDetail(${idx})">
+                    <div class="flex items-baseline justify-between mb-2">
+                        <span class="text-xs text-approved-blue font-sans">${data.id} / ${data.category}</span>
+                        <span class="text-xs text-sys-text-muted">${data.year}</span>
+                    </div>
+                    <h3 class="font-serif text-xl text-sys-text-primary group-hover:text-approved-blue transition-colors mb-2">
+                        ${data.title}
+                    </h3>
+                    <p class="font-serif text-xs text-approved-blue/80 mb-3 italic">${data.subtitle}</p>
+                    <p class="text-sm text-sys-text-secondary leading-relaxed font-serif line-clamp-2">
+                        ${data.idea}
+                    </p>
+                </div>
+            `).join('');
+        }
+
+        function openPanel(panelId) {
+            const backdrop = document.getElementById('panel-backdrop');
+            const wrapper = document.getElementById('panel-content-wrapper');
+            const homeFrag = document.getElementById('home-fragment');
+
+            document.querySelectorAll('.panel-section').forEach(el => el.classList.add('hidden'));
+
+            const target = document.getElementById(`panel-${panelId}`);
+            if (target) target.classList.remove('hidden');
+
+            backdrop.classList.remove('pointer-events-none');
+            backdrop.classList.add('opacity-100');
+            wrapper.classList.remove('translate-x-full');
+
+            if (homeFrag) homeFrag.classList.add('opacity-0');
+        }
+
+        function closePanels() {
+            const backdrop = document.getElementById('panel-backdrop');
+            const wrapper = document.getElementById('panel-content-wrapper');
+            const homeFrag = document.getElementById('home-fragment');
+
+            wrapper.classList.add('translate-x-full');
+            backdrop.classList.remove('opacity-100');
+            backdrop.classList.add('pointer-events-none');
+
+            if (homeFrag) homeFrag.classList.remove('opacity-0');
+        }
+
+        function openWorkDetail(index) {
+            const data = WORKS_DATA[index];
+            if (!data) return;
+
+            const detailContainer = document.getElementById('work-detail-content');
+
+            // 4张空间展示图：展厅级别的 2x2 响应式网格与完整的 object-contain 呈现
+            const imagesHTML = data.images.map((img, i) => {
+                return `
+                    <div class="relative group cursor-pointer collage-img rounded-sm overflow-hidden border border-white/10 bg-black/60 flex flex-col justify-between transition-all duration-300">
+                        <div class="w-full h-48 sm:h-56 md:h-64 flex items-center justify-center p-2 bg-black/40">
+                            <img src="${img.url}" 
+                                 alt="${img.label || img.tag}" 
+                                 class="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/600x400/18181b/E8E8E5?text=${encodeURIComponent(img.tag)}';" />
+                        </div>
+                        <div class="p-2.5 bg-sys-black/90 border-t border-white/10 flex justify-between items-center">
+                            <div class="truncate max-w-[80%]">
+                                <span class="font-sans text-[9px] text-approved-blue tracking-widest uppercase block truncate">${img.tag}</span>
+                                ${img.label ? `<span class="font-serif text-[10px] text-sys-text-primary block truncate">${img.label}</span>` : ''}
+                            </div>
+                            <span class="font-serif text-[10px] text-sys-text-muted shrink-0">FIG 0${i + 1}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 视频展示区域 (通用适配带有 videoUrl 的作品)
+            const videoHTML = data.videoUrl ? `
+                <div class="mt-10 pt-8 border-t border-sys-text-primary/10 flex flex-col items-center w-full">
+                    <span class="text-[9.5px] font-sans text-approved-blue tracking-widest uppercase block mb-4 text-center">
+                        [ MOVING IMAGE INSTALLATION / 映像装置 ]
+                    </span>
+                    <div class="relative w-full flex justify-center bg-sys-black border border-white/10 p-2 md:p-4 rounded-sm">
+                        <video 
+                            src="${data.videoUrl}" 
+                            autoplay 
+                            loop 
+                            muted 
+                            playsinline 
+                            controls
+                            class="w-auto h-auto max-h-[65vh] max-w-full object-contain mx-auto block"
+                        ></video>
+                    </div>
+                </div>
+            ` : '';
+
+            // 日英双语概念文字结构
+            let detailTextHTML = '';
+            if (data.japaneseContent && data.englishContent) {
+                const jp = data.japaneseContent;
+                const en = data.englishContent;
+
+                detailTextHTML = `
+                    <div class="space-y-8 font-serif text-xs md:text-sm text-sys-text-secondary leading-relaxed">
+                        <!-- 日本語版 -->
+                        <div class="border-b border-sys-text-primary/10 pb-8 space-y-6">
+                            <span class="text-[10px] font-sans text-approved-blue tracking-widest uppercase block">[ JAPANESE VERSION / 日本語 ]</span>
+                            
+                            <div>
+                                <h3 class="font-serif text-base text-sys-text-primary font-medium mb-2">${jp.section1Title}</h3>
+                                <p class="whitespace-pre-line text-sys-text-secondary leading-[1.85] text-justify">${jp.section1Text}</p>
+                            </div>
+
+                            <div>
+                                <h3 class="font-serif text-base text-sys-text-primary font-medium mb-2">${jp.section2Title}</h3>
+                                <p class="whitespace-pre-line text-sys-text-secondary leading-[1.85] text-justify">${jp.section2Text}</p>
+                            </div>
+
+                            <div>
+                                <h3 class="font-serif text-base text-sys-text-primary font-medium mb-2">${jp.section3Title}</h3>
+                                <p class="whitespace-pre-line text-sys-text-secondary leading-[1.85] text-justify">${jp.section3Text}</p>
+                            </div>
+                        </div>
+
+                        <!-- English Version -->
+                        <div class="pt-2 space-y-6">
+                            <span class="text-[10px] font-sans text-approved-blue tracking-widest uppercase block">[ ENGLISH VERSION ]</span>
+
+                            <div>
+                                <h3 class="font-sans text-sm text-sys-text-primary font-semibold tracking-wide uppercase mb-2">${en.section1Title}</h3>
+                                <p class="whitespace-pre-line text-sys-text-secondary leading-[1.8] text-justify">${en.section1Text}</p>
+                            </div>
+
+                            <div>
+                                <h3 class="font-sans text-sm text-sys-text-primary font-semibold tracking-wide uppercase mb-2">${en.section2Title}</h3>
+                                <p class="whitespace-pre-line text-sys-text-secondary leading-[1.8] text-justify">${en.section2Text}</p>
+                            </div>
+
+                            <div>
+                                <h3 class="font-sans text-sm text-sys-text-primary font-semibold tracking-wide uppercase mb-2">${en.section3Title}</h3>
+                                <p class="whitespace-pre-line text-sys-text-secondary leading-[1.8] text-justify">${en.section3Text}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                detailTextHTML = `
+                    <div id="work-hover-info" class="p-5 bg-sys-bg/80 border border-sys-text-primary/10 rounded-sm">
+                        <span id="hover-tag" class="text-[10px] font-sans text-approved-blue tracking-widest uppercase block mb-2">[ OVERVIEW ]</span>
+                        <h4 id="hover-label" class="font-serif text-sm text-sys-text-primary font-medium mb-2">${data.title}</h4>
+                        <p id="hover-desc" class="font-serif text-xs text-sys-text-secondary leading-relaxed">${data.idea}</p>
+                    </div>
+                `;
+            }
+
+            detailContainer.innerHTML = `
+                <div class="flex flex-col lg:flex-row gap-8 lg:gap-12 min-h-[75vh]">
+                    <!-- 左侧：作品基本信息与日/英双语概念文字 -->
+                    <div class="w-full lg:w-1/2 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-sys-text-primary/10 pb-8 lg:pb-0 lg:pr-8">
+                        <div>
+                            <button onclick="openPanel('works')" class="text-xs font-sans text-approved-blue hover:underline mb-6 flex items-center space-x-2 uppercase tracking-wider">
+                                <span>←</span>
+                                <span>INDEX OF WORKS</span>
+                            </button>
+
+                            <div class="mb-8 border-b border-sys-text-primary/10 pb-6">
+                                <span class="text-xs font-sans text-approved-blue tracking-widest font-medium block mb-1 uppercase">${data.id} / ${data.category}</span>
+                                <h2 class="font-serif text-2xl md:text-3xl text-sys-text-primary mb-1">${data.title}</h2>
+                                <p class="font-serif text-xs md:text-sm text-sys-text-secondary italic">${data.subtitle} (${data.year})</p>
+                            </div>
+
+                            ${detailTextHTML}
+                        </div>
+                    </div>
+
+                    <!-- 右侧：2x2 网格完整的图片展示与视频区域 -->
+                    <div class="w-full lg:w-1/2 spatial-grid-bg p-4 md:p-8 rounded-sm border border-sys-text-primary/10 flex flex-col justify-start">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 relative">
+                            ${imagesHTML}
+                        </div>
+                        <p class="text-[9.5px] font-sans text-sys-text-muted tracking-widest uppercase mt-4 text-right select-none">
+                            ⊙ HOVER OVER IMAGES TO REVEAL FULL COLOR
+                        </p>
+
+                        ${videoHTML}
+                    </div>
+                </div>
+            `;
+
+            openPanel('work-detail');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closePanels();
+        });
+
+        window.onload = function() {
+            init3D();
+            animate();
+        };
+    </script>
+</body>
+</html>
