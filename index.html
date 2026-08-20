@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STANLY — Divination & Identity Systems</title>
+    <title>HUA ZHEJING — Divination & Identity Systems</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -172,7 +172,7 @@
             width: 100%;
         }
 
-        /* 作品详情空间拼贴图黑白转彩色悬停效果 */
+        /* 作品详情空间拼贴图悬停效果 */
         .collage-img {
             filter: grayscale(100%) opacity(0.8);
             transition: filter 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.4s ease, box-shadow 0.4s ease;
@@ -273,10 +273,10 @@
     <!-- 陨石 2D 投影标签层 -->
     <div id="labels-container" class="fixed inset-0 w-full h-full z-20 pointer-events-none"></div>
 
-    <!-- 侧边展开抽屉面板 -->
-    <div id="panel-backdrop" class="fixed inset-0 bg-sys-bg/95 z-40 opacity-0 pointer-events-none transition-opacity duration-500 flex justify-end">
-        <div id="panel-content-wrapper" class="w-full md:w-[680px] lg:w-[80vw] h-full bg-sys-black border-l border-sys-text-primary/10 overflow-y-auto px-6 md:px-12 py-16 translate-x-full transition-all duration-500 ease-out">
-            <button onclick="closePanels()" class="fixed top-8 right-8 md:right-12 text-xs text-sys-text-muted hover:text-sys-text-primary tracking-[0.14em] transition-colors py-2 px-4 uppercase z-50 bg-sys-black/80 border border-white/10 rounded-sm">
+    <!-- 侧边展开抽屉面板 (优化为精细右侧边栏，保留左侧 3D 宇宙视野) -->
+    <div id="panel-backdrop" onclick="if(event.target === this) closePanels()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 opacity-0 pointer-events-none transition-opacity duration-500 flex justify-end">
+        <div id="panel-content-wrapper" class="w-full sm:w-[540px] md:w-[580px] lg:w-[620px] h-full bg-sys-black/95 border-l border-sys-text-primary/10 overflow-y-auto px-6 md:px-10 py-16 translate-x-full transition-all duration-500 ease-out shadow-2xl">
+            <button onclick="closePanels()" class="fixed top-8 right-8 text-xs text-sys-text-muted hover:text-sys-text-primary tracking-[0.14em] transition-colors py-2 px-4 uppercase z-50 bg-sys-black/80 border border-white/10 rounded-sm">
                 [ CLOSE ESC ]
             </button>
 
@@ -294,21 +294,58 @@
                     <!-- 动态渲染作品列表 -->
                 </div>
             </div>
-
-            <!-- 面板 2: 艺术家陈述 -->
+            <!-- 面板 2: 艺术家陈述 (HUA ZHEJING / 右侧收拢精细排版) -->
             <div id="panel-artist" class="panel-section hidden">
-                <div class="mb-10">
-                    <span class="text-xs font-sans text-sys-text-secondary tracking-[0.14em] uppercase block mb-2">02 / ARTIST STATEMENT</span>
+                <!-- 标题区 -->
+                <div class="mb-8">
+                    <span class="text-xs font-sans text-sys-text-secondary tracking-[0.14em] uppercase block mb-2">02 / ARTIST PROFILE & STATEMENT</span>
                     <h2 class="font-sans text-2xl md:text-3xl text-sys-text-primary font-light tracking-wide uppercase">Artist Statement</h2>
                 </div>
 
-                <div class="space-y-8 font-serif text-sm text-sys-text-secondary leading-[1.8] max-w-xl">
-                    <p>
-                        I am STANLY. I deconstruct East Asian traditional divination formulas into contemporary media installations and interactive spatial environments.
-                    </p>
-                    <p>
-                        In contemporary society, youth frequently encounter existential dilemmas regarding identity and self-location. Rather than offering deterministic answers, my work reclaims divination as a shared, public mechanism for collective dialogue.
-                    </p>
+                <!-- 艺术家信息与右上角小型照片区 -->
+                <div class="flex flex-row-reverse justify-between items-start gap-5 mb-8 pb-6 border-b border-sys-text-primary/10">
+                    <div class="w-28 sm:w-32 shrink-0 border border-white/15 p-1 bg-sys-bg/60 rounded-sm">
+                        <img src="https://raw.githubusercontent.com/jing862/-/main/c385f0fa637ba3f57da899c8e0d2c195.jpg"
+                             alt="Artist Portrait - HUA ZHEJING"
+                             class="w-full h-auto object-cover rounded-sm shadow-md"
+                             onerror="this.onerror=null; this.src='https://placehold.co/300x400/18181b/E8E8E5?text=HUA+ZHEJING';" />
+                    </div>
+                    <div class="flex-1 space-y-2">
+                        <span class="text-[10px] font-sans text-approved-blue tracking-widest uppercase block">[ ARTIST PROFILE ]</span>
+                        <h3 class="font-serif text-xl text-sys-text-primary font-medium">HUA ZHEJING</h3>
+                        <p class="font-serif text-xs text-sys-text-secondary leading-relaxed">
+                            Moving Image / Photography / Spatial Installation / Divination & Identity Research
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 日英双语自我介绍段落 -->
+                <div class="space-y-10 w-full">
+                    <!-- 日本語版 -->
+                    <div class="space-y-4 border-b border-sys-text-primary/10 pb-8">
+                        <span class="text-[10px] font-sans text-approved-blue tracking-widest uppercase block">[ JAPANESE VERSION / 日本語 ]</span>
+                        <div class="font-serif text-xs md:text-sm text-sys-text-secondary leading-[1.85] space-y-4 text-justify">
+                            <p>私は映像と写真を主なメディアとする独立系アーティストです。大学では演劇映像文学を専攻し、脚本執筆やドキュメンタリー、映像制作の実践を重ねる中で、次第に実験映画・実験映像へと制作の軸を移し、現実と記憶、そして未知のものとの関係を探るようになりました。</p>
+                            <p>私は浙江省沿岸部の小さな町で生まれ育ちました。豊かな無形文化遺産や民間の風習に囲まれて育った経験は、知らず知らずのうちに、私が世界を理解し、人や社会を観察するための最初の土台になっています。大学時代は、ヒューマン・ドキュメンタリーや写真を通して、人と土地、伝統と現代社会の関係を継続的に観察してきました。実在の人や出来事を記録していく中で、私は次第に、現実の背後にある目に見えないもの――人々の信仰や記憶、想像、そして未知に直面したときに生まれる解釈や意味――に関心を持つようになりました。</p>
+                            <p>こうした経験を通して、私の創作は現実の記録から、次第に「見えないもの」を探る方向へと変わっていきました。現在は、民俗学やオカルティズム、それに関わる社会学的な視点を映像の言葉に置き換え、実験映画を通してこれらの文化的な記号と個人的な経験を組み直す試みを続けています。</p>
+                            <p>私の作品では、神秘的な記号を解体する手法や、ポップアート的な視覚表現、自然を撮った映像、イメージを喚起するような表現がよく組み合わされています。また、映像とデジタルメディア、インタラクティブな要素を組み合わせることで、現実とフィクション、理性と神秘、見えるものと見えないものの間に新しい関係を築こうとしています。</p>
+                            <p>作品を通してオカルティズムそのものを説明しようとしているわけではありません。むしろ、人が意味を与えてきたこれらの記号を手がかりに、人はなぜ信じ、解釈し、意味を求めるのか、そしてそれを通してどのように自分自身や世界を理解しようとするのかを考えたいと思っています。</p>
+                            <p>私にとって実験映像は、単なる表現形式ではなく、世界について考えるための一つの方法でもあります。これからも現実と未知の境界で創作と研究を続け、哲学と芸術のあいだに新しい可能性を探っていきたいと考えています。</p>
+                        </div>
+                    </div>
+
+                    <!-- English Version -->
+                    <div class="space-y-4">
+                        <span class="text-[10px] font-sans text-approved-blue tracking-widest uppercase block">[ ENGLISH VERSION ]</span>
+                        <div class="font-serif text-xs md:text-sm text-sys-text-secondary leading-[1.8] space-y-4 text-justify">
+                            <p>I am an independent artist working primarily with moving image and photography. I studied drama and film literature as an undergraduate, and through writing scripts and making documentaries and other video work, I gradually moved toward experimental film and video, exploring the relationship between reality, memory, and the unknown.</p>
+                            <p>I was born and grew up in a small coastal town in Zhejiang Province, surrounded by rich intangible cultural heritage and folk traditions. Growing up with these things quietly shaped the way I understand the world and observe people and society. During my undergraduate years, I kept exploring the relationship between people and place, and between tradition and contemporary society, through documentary and photography. As I recorded real people and real events, I found myself becoming more interested in what lies behind reality but can't be directly seen: people's beliefs, memories, imagination, and the meanings they create when they face the unknown.</p>
+                            <p>These experiences gradually shifted my practice away from simply documenting reality and toward exploring what is invisible. At the moment, I am trying to translate folklore, occultism, and the sociological thinking connected to them into a visual language, using experimental film to reorganize these cultural symbols alongside my own personal experience.</p>
+                            <p>My work often combines the deconstruction of mystical symbols, pop-art-influenced visuals, footage of nature, and imagery-driven forms of expression. I also try to bring moving image together with digital media and interactive elements, building new relationships between reality and fiction, reason and mystery, the visible and the invisible.</p>
+                            <p>I am not trying to explain occultism itself through my work. Instead, I want to use these symbols — things that people have given meaning to — as a way of thinking about why people need to believe, to interpret, and to search for meaning, and how they come to understand themselves and the world through this process.</p>
+                            <p>For me, experimental video is not only a form of expression but also a way of thinking about the world. I want to keep making work and doing research on the border between reality and the unknown, and to keep looking for new possibilities between philosophy and art.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -350,70 +387,22 @@
     <script>
         // 64句卜算语录（答案之书）
         const ORACLE_PHRASES = [
-            "答えは近づいています。",
-            "まだその時ではありません。",
-            "自分の直感を信じてください。",
-            "急いで決める必要はありません。",
-            "あなたはもう答えを知っています。",
-            "もう少し待ってください。",
-            "すべては変わっていきます。",
-            "流れに任せましょう。",
-            "振り返らないでください。",
-            "別の道を選んでみましょう。",
-            "説明する必要のないこともあります。",
-            "時間が答えを教えてくれます。",
-            "あなたはそれに出会います。",
-            "手放すことで、前に進めます。",
-            "これは終わりではありません。",
-            "あなたは近づいています。",
-            "答えは細部に隠れています。",
-            "もしかしたら、考え違いかもしれません。",
-            "もう一度、見てみましょう。",
-            "偶然を見逃さないでください。",
-            "誰かがあなたを待っています。",
-            "きっと返事が来ます。",
-            "今は黙っていましょう。",
-            "自分の気持ちを伝えましょう。",
-            "今なら、出発できます。",
-            "もう一日、待ちましょう。",
-            "チャンスはもう現れています。",
-            "見逃さないでください。",
-            "方向を変える必要があります。",
-            "今までの道も間違いではありません。",
-            "少しだけ、ゆっくり進みましょう。",
-            "前へ進みましょう。",
-            "思っているより、近くにあります。",
-            "物事は予定通りには進みません。",
-            "思いがけないことも答えです。",
-            "あなたはもう一度、始めます。",
-            "何かが消えようとしています。",
-            "新しい何かが生まれようとしています。",
-            "知らないものを恐れないでください。",
-            "変化を受け入れましょう。",
-            "あなたの居場所が見つかります。",
-            "誰かになる必要はありません。",
-            "なぜ始めたのか、思い出してください。",
-            "もう一度、選び直せます。",
-            "過去は消えていません。",
-            "未来は変わり続けています。",
-            "答えのない問いもあります。",
-            "不確かなことも、一つの答えです。",
-            "風が吹くのを待ちましょう。",
-            "光のある方へ進みましょう。",
-            "周りの人に目を向けてください。",
-            "足元を見てください。",
-            "新しい景色が見えてきます。",
-            "ある瞬間が、あなたを変えます。",
-            "偶然は、偶然ではありません。",
-            "運命が曲がり始めています。",
-            "いつか、すべてが分かります。",
-            "答えは、もしかすると後ろにあります。",
-            "答えを探しすぎないでください。",
-            "起こるべきことは、自然に起こります。",
-            "今、起きていることを信じてください。",
-            "待っていたものが、近づいています。",
-            "もしかすると、答えはあなた自身です。",
-            "ここを開いたのも、偶然ではありません。"
+            "答えは近づいています。", "まだその時ではありません。", "自分の直感を信じてください。", "急いで決める必要はありません。",
+            "あなたはもう答えを知っています。", "もう少し待ってください。", "すべては変わっていきます。", "流れに任せましょう。",
+            "振り返らないでください。", "別の道を選んでみましょう。", "説明する必要のないこともあります。", "時間が答えを教えてくれます。",
+            "あなたはそれに出会います。", "手放すことで、前に進めます。", "これは終わりではありません。", "あなたは近づいています。",
+            "答えは細部に隠れています。", "もしかしたら、考え違いかもしれません。", "もう一度、見てみましょう。", "偶然を見逃さないでください。",
+            "誰かがあなたを待っています。", "きっと返事が来ます。", "今は黙っていましょう。", "自分の気持ちを伝えましょう。",
+            "今なら、出発できます。", "もう一日、待ちましょう。", "チャンスはもう現れています。", "見逃さないでください。",
+            "方向を変える必要があります。", "今までの道も間違いではありません。", "少しだけ、ゆっくり進みましょう。", "前へ進みましょう。",
+            "思っているより、近くにあります。", "物事は予定通りには進みません。", "思いがけないことも答えです。", "あなたはもう一度、始めます。",
+            "何かが消えようとしています。", "新しい何かが生まれようとしています。", "知らないものを恐れないでください。", "変化を受け入れましょう。",
+            "あなたの居場所が見つかります。", "誰かになる必要はありません。", "なぜ始めたのか、思い出してください。", "もう一度、選び直せます。",
+            "過去は消えていません。", "未来は変わり続けています。", "答えのない問いもあります。", "不確かなことも、一つの答えです。",
+            "風が吹くのを待ちましょう。", "光のある方へ進みましょう。", "周りの人に目を向けてください。", "足元を見てください。",
+            "新しい景色が見えてきます。", "ある瞬間が、あなたを変えます。", "偶然は、偶然ではありません。", "運命が曲がり始めています。",
+            "いつか、すべてが分かります。", "答えは、もしかすると後ろにあります。", "答えを探しすぎないでください。", "起こるべきことは、自然に起こります。",
+            "今、起きていることを信じてください。", "待っていたものが、近づいています。", "もしかすると、答えはあなた自身です。", "ここを開いたのも、偶然ではありません。"
         ];
 
         const WORKS_DATA = [
@@ -1263,6 +1252,16 @@
             const target = document.getElementById(`panel-${panelId}`);
             if (target) target.classList.remove('hidden');
 
+            if (panelId === 'artist') {
+                // 仅 ARTIST 面板使用右侧紧密精细抽屉，左侧透出 3D 宇宙
+                backdrop.className = 'fixed inset-0 bg-black/40 backdrop-blur-sm z-40 opacity-0 pointer-events-none transition-opacity duration-500 flex justify-end';
+                wrapper.className = 'w-full sm:w-[540px] md:w-[580px] lg:w-[620px] h-full bg-sys-black/95 border-l border-sys-text-primary/10 overflow-y-auto px-6 md:px-10 py-16 translate-x-full transition-all duration-500 ease-out shadow-2xl';
+            } else {
+                // WORKS、RESEARCH 及作品详情等恢复原有的标准宽幅面板
+                backdrop.className = 'fixed inset-0 bg-black/85 backdrop-blur-md z-40 opacity-0 pointer-events-none transition-opacity duration-500 flex justify-end';
+                wrapper.className = 'w-full md:w-[85vw] lg:w-[80vw] xl:w-[75vw] h-full bg-sys-black border-l border-sys-text-primary/10 overflow-y-auto px-6 md:px-12 py-16 translate-x-full transition-all duration-500 ease-out shadow-2xl';
+            }
+
             backdrop.classList.remove('pointer-events-none');
             backdrop.classList.add('opacity-100');
             wrapper.classList.remove('translate-x-full');
@@ -1288,7 +1287,6 @@
 
             const detailContainer = document.getElementById('work-detail-content');
 
-            // 4张空间展示图：展厅级别的 2x2 响应式网格与完整的 object-contain 呈现
             const imagesHTML = data.images.map((img, i) => {
                 return `
                     <div class="relative group cursor-pointer collage-img rounded-sm overflow-hidden border border-white/10 bg-black/60 flex flex-col justify-between transition-all duration-300">
@@ -1309,7 +1307,6 @@
                 `;
             }).join('');
 
-            // 视频展示区域 (通用适配带有 videoUrl 的作品)
             const videoHTML = data.videoUrl ? `
                 <div class="mt-10 pt-8 border-t border-sys-text-primary/10 flex flex-col items-center w-full">
                     <span class="text-[9.5px] font-sans text-approved-blue tracking-widest uppercase block mb-4 text-center">
@@ -1329,7 +1326,6 @@
                 </div>
             ` : '';
 
-            // 日英双语概念文字结构
             let detailTextHTML = '';
             if (data.japaneseContent && data.englishContent) {
                 const jp = data.japaneseContent;
@@ -1390,7 +1386,6 @@
 
             detailContainer.innerHTML = `
                 <div class="flex flex-col lg:flex-row gap-8 lg:gap-12 min-h-[75vh]">
-                    <!-- 左侧：作品基本信息与日/英双语概念文字 -->
                     <div class="w-full lg:w-1/2 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-sys-text-primary/10 pb-8 lg:pb-0 lg:pr-8">
                         <div>
                             <button onclick="openPanel('works')" class="text-xs font-sans text-approved-blue hover:underline mb-6 flex items-center space-x-2 uppercase tracking-wider">
@@ -1408,7 +1403,6 @@
                         </div>
                     </div>
 
-                    <!-- 右侧：2x2 网格完整的图片展示与视频区域 -->
                     <div class="w-full lg:w-1/2 spatial-grid-bg p-4 md:p-8 rounded-sm border border-sys-text-primary/10 flex flex-col justify-start">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 relative">
                             ${imagesHTML}
